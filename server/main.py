@@ -152,6 +152,20 @@ class RestockOrder(BaseModel):
     expected_delivery: str
     items: List[RestockOrderLine]
 
+class QuarterlyReport(BaseModel):
+    quarter: str
+    total_orders: int
+    total_revenue: float
+    delivered_orders: int
+    avg_order_value: float
+    fulfillment_rate: float
+
+class MonthlyTrend(BaseModel):
+    month: str
+    order_count: int
+    revenue: float
+    delivered_count: int
+
 # API endpoints
 @app.get("/")
 def root():
@@ -334,80 +348,91 @@ def create_restocking_order(request: CreateRestockOrderRequest):
         restocking_orders.append(order)
     return order
 
-@app.get("/api/reports/quarterly")
-def get_quarterly_reports():
-    """Get quarterly performance reports"""
-    # Calculate quarterly statistics from orders
+def _filtered_report_orders(warehouse, category, status, month) -> list:
+    """Orders after the global filter bar is applied, same rules as /api/orders."""
+    filtered = apply_filters(orders, warehouse, category, status)
+    return filter_by_month(filtered, month)
+
+def _order_month(order: dict) -> Optional[str]:
+    """Return YYYY-MM for an order, or None if order_date is missing or malformed."""
+    order_date = order.get('order_date') or ''
+    try:
+        date.fromisoformat(order_date[:10])
+    except ValueError:
+        return None
+    return order_date[:7]
+
+@app.get("/api/reports/quarterly", response_model=List[QuarterlyReport])
+def get_quarterly_reports(
+    warehouse: Optional[str] = None,
+    category: Optional[str] = None,
+    status: Optional[str] = None,
+    month: Optional[str] = None
+):
+    """Get quarterly performance reports with optional filtering"""
     quarters = {}
 
-    for order in orders:
-        order_date = order.get('order_date', '')
-        # Determine quarter
-        if '2025-01' in order_date or '2025-02' in order_date or '2025-03' in order_date:
-            quarter = 'Q1-2025'
-        elif '2025-04' in order_date or '2025-05' in order_date or '2025-06' in order_date:
-            quarter = 'Q2-2025'
-        elif '2025-07' in order_date or '2025-08' in order_date or '2025-09' in order_date:
-            quarter = 'Q3-2025'
-        elif '2025-10' in order_date or '2025-11' in order_date or '2025-12' in order_date:
-            quarter = 'Q4-2025'
-        else:
+    for order in _filtered_report_orders(warehouse, category, status, month):
+        order_month = _order_month(order)
+        if not order_month:
             continue
+        # Derive the quarter from the date instead of a hard-coded 2025 lookup,
+        # so data from other years is reported rather than silently dropped.
+        year, month_num = int(order_month[:4]), int(order_month[5:7])
+        quarter_num = (month_num - 1) // 3 + 1
+        key = (year, quarter_num)
 
-        if quarter not in quarters:
-            quarters[quarter] = {
-                'quarter': quarter,
-                'total_orders': 0,
-                'total_revenue': 0,
-                'delivered_orders': 0,
-                'avg_order_value': 0
-            }
-
-        quarters[quarter]['total_orders'] += 1
-        quarters[quarter]['total_revenue'] += order.get('total_value', 0)
+        data = quarters.setdefault(key, {
+            'quarter': f'Q{quarter_num}-{year}',
+            'total_orders': 0,
+            'total_revenue': 0.0,
+            'delivered_orders': 0,
+        })
+        data['total_orders'] += 1
+        data['total_revenue'] += order.get('total_value', 0)
         if order.get('status') == 'Delivered':
-            quarters[quarter]['delivered_orders'] += 1
+            data['delivered_orders'] += 1
 
-    # Calculate averages and fulfillment rate
     result = []
-    for q, data in quarters.items():
-        if data['total_orders'] > 0:
-            data['avg_order_value'] = round(data['total_revenue'] / data['total_orders'], 2)
-            data['fulfillment_rate'] = round((data['delivered_orders'] / data['total_orders']) * 100, 1)
+    # Sort by (year, quarter) tuple; sorting the "Qn-YYYY" label would put
+    # Q1-2026 before Q2-2025.
+    for key in sorted(quarters):
+        data = quarters[key]
+        total = data['total_orders']  # always >= 1 because the bucket exists
+        data['avg_order_value'] = round(data['total_revenue'] / total, 2)
+        data['fulfillment_rate'] = round(data['delivered_orders'] / total * 100, 1)
+        # Round after averaging; summing floats leaves values like 31166853.089999996
+        data['total_revenue'] = round(data['total_revenue'], 2)
         result.append(data)
-
-    # Sort by quarter
-    result.sort(key=lambda x: x['quarter'])
     return result
 
-@app.get("/api/reports/monthly-trends")
-def get_monthly_trends():
-    """Get month-over-month trends"""
+@app.get("/api/reports/monthly-trends", response_model=List[MonthlyTrend])
+def get_monthly_trends(
+    warehouse: Optional[str] = None,
+    category: Optional[str] = None,
+    status: Optional[str] = None,
+    month: Optional[str] = None
+):
+    """Get month-over-month trends with optional filtering"""
     months = {}
 
-    for order in orders:
-        order_date = order.get('order_date', '')
-        if not order_date:
+    for order in _filtered_report_orders(warehouse, category, status, month):
+        order_month = _order_month(order)
+        if not order_month:
             continue
 
-        # Extract month (format: YYYY-MM-DD)
-        month = order_date[:7]  # Gets YYYY-MM
-
-        if month not in months:
-            months[month] = {
-                'month': month,
-                'order_count': 0,
-                'revenue': 0,
-                'delivered_count': 0
-            }
-
-        months[month]['order_count'] += 1
-        months[month]['revenue'] += order.get('total_value', 0)
+        data = months.setdefault(order_month, {
+            'month': order_month,
+            'order_count': 0,
+            'revenue': 0.0,
+            'delivered_count': 0
+        })
+        data['order_count'] += 1
+        data['revenue'] += order.get('total_value', 0)
         if order.get('status') == 'Delivered':
-            months[month]['delivered_count'] += 1
+            data['delivered_count'] += 1
 
-    # Convert to list and sort
-    result = list(months.values())
+    result = [dict(m, revenue=round(m['revenue'], 2)) for m in months.values()]
     result.sort(key=lambda x: x['month'])
     return result
 

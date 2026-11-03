@@ -257,6 +257,35 @@ export default {
     }
   },
 
+  reports: {
+    title: 'Performance Reports',
+    description: 'View quarterly performance metrics and monthly trends',
+    loading: 'Loading reports...',
+    loadError: 'Failed to load reports: {message}',
+    noData: 'No orders match the selected filters',
+    totalRevenue: 'Total Revenue',
+    avgMonthlyRevenue: 'Avg Monthly Revenue',
+    totalOrders: 'Total Orders',
+    bestQuarter: 'Best Performing Quarter',
+    quarterlyPerformance: 'Quarterly Performance',
+    monthlyRevenueTrend: 'Monthly Revenue Trend',
+    monthOverMonth: 'Month-over-Month Analysis',
+    notAvailable: 'N/A',
+    monthLabel: '{month} {year}',
+    table: {
+      quarter: 'Quarter',
+      totalOrders: 'Total Orders',
+      totalRevenue: 'Total Revenue',
+      avgOrderValue: 'Avg Order Value',
+      fulfillmentRate: 'Fulfillment Rate',
+      month: 'Month',
+      orders: 'Orders',
+      revenue: 'Revenue',
+      change: 'Change',
+      growthRate: 'Growth Rate'
+    }
+  },
+
   // Filters
   filters: {
     timePeriod: 'Time Period',
