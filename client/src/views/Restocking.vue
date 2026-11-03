@@ -302,24 +302,24 @@ onMounted(loadData)
         <div class="card-header">
           <h3 class="card-title">{{ t('restocking.candidates') }} ({{ rows.length }})</h3>
         </div>
-        <div v-if="rows.length === 0" class="loading">{{ t('restocking.noCandidates') }}</div>
+        <div v-if="rows.length === 0" class="empty-state">{{ t('restocking.noCandidates') }}</div>
         <div v-else class="table-container">
           <table>
             <thead>
               <tr>
-                <th>{{ t('restocking.table.include') }}</th>
+                <th class="col-include">{{ t('restocking.table.include') }}</th>
                 <th>{{ t('restocking.table.item') }}</th>
                 <th>{{ t('restocking.table.trend') }}</th>
-                <th>{{ t('restocking.table.recommended') }}</th>
-                <th>{{ t('restocking.table.quantity') }}</th>
-                <th>{{ t('restocking.table.unitCost') }}</th>
-                <th>{{ t('restocking.table.lineTotal') }}</th>
-                <th>{{ t('restocking.table.leadTime') }}</th>
+                <th class="numeric">{{ t('restocking.table.recommended') }}</th>
+                <th class="numeric">{{ t('restocking.table.quantity') }}</th>
+                <th class="numeric">{{ t('restocking.table.unitCost') }}</th>
+                <th class="numeric">{{ t('restocking.table.lineTotal') }}</th>
+                <th class="numeric">{{ t('restocking.table.leadTime') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="row in rows" :key="row.sku">
-                <td>
+                <td class="col-include">
                   <input
                     v-model="selection[row.sku].include"
                     type="checkbox"
@@ -333,20 +333,20 @@ onMounted(loadData)
                 <td>
                   <span :class="['badge', row.trend]">{{ t(`restocking.trend.${row.trend}`) }}</span>
                 </td>
-                <td>{{ row.recommendedQty.toLocaleString() }}</td>
-                <td>
+                <td class="numeric">{{ row.recommendedQty.toLocaleString() }}</td>
+                <td class="numeric">
                   <input
                     v-model.number="selection[row.sku].quantity"
                     type="number"
                     min="0"
                     step="1"
-                    class="qty-input"
+                    class="input qty-input"
                     :aria-label="`${t('restocking.table.quantity')} ${row.sku}`"
                   />
                 </td>
-                <td>{{ formatUnit(row.unitCost) }}</td>
-                <td><strong>{{ formatMoney(row.lineTotal) }}</strong></td>
-                <td>{{ t('restocking.days', { count: row.leadTime }) }}</td>
+                <td class="numeric">{{ formatUnit(row.unitCost) }}</td>
+                <td class="numeric"><strong>{{ formatMoney(row.lineTotal) }}</strong></td>
+                <td class="numeric">{{ t('restocking.days', { count: row.leadTime }) }}</td>
               </tr>
             </tbody>
           </table>
@@ -366,110 +366,156 @@ onMounted(loadData)
 
 <style scoped>
 .budget-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
+/* Custom range: accent-colored track and thumb. Native appearance is removed so
+   Chromium/Firefox/Safari render the same; the thumb keeps the global focus ring. */
 .budget-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
   width: 100%;
-  accent-color: #2563eb;
+  height: var(--space-6);
+  background: transparent;
+  cursor: pointer;
+}
+
+.budget-slider::-webkit-slider-runnable-track {
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
+}
+
+.budget-slider::-moz-range-track {
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
+}
+
+.budget-slider::-moz-range-progress {
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+
+.budget-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--space-5);
+  height: var(--space-5);
+  /* (track height - thumb height) / 2 centers the thumb on the track */
+  margin-top: calc((var(--space-2) - var(--space-5)) / 2);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  border: 2px solid var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.budget-slider::-moz-range-thumb {
+  width: var(--space-5);
+  height: var(--space-5);
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  border: 2px solid var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.budget-slider:focus-visible {
+  outline: none;
+}
+
+.budget-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--focus-ring);
+}
+
+.budget-slider:focus-visible::-moz-range-thumb {
+  box-shadow: var(--focus-ring);
 }
 
 .slider-scale {
   display: flex;
   justify-content: space-between;
-  color: #64748b;
-  font-size: 0.813rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .hint {
-  color: #64748b;
-  font-size: 0.875rem;
-  margin: 0.5rem 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin: var(--space-2) 0 0;
 }
 
 .hint-warning {
-  color: #92400e;
+  color: var(--color-warning-text);
 }
 
 .sku {
-  color: #64748b;
-  font-size: 0.813rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.col-include {
+  width: var(--space-10);
+}
+
+.col-include input {
+  accent-color: var(--color-accent);
 }
 
 .qty-input {
-  width: 90px;
-  padding: 0.375rem 0.5rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: #0f172a;
+  width: 96px;
+  height: var(--control-height-sm);
+  font-size: var(--text-sm);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .order-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
 }
 
 .block-reason {
-  color: #991b1b;
-  font-size: 0.875rem;
+  color: var(--color-danger-text);
+  font-size: var(--text-sm);
 }
 
+/* router-link renders an anchor with .btn-primary; strip the underline */
 .btn-primary,
 .btn-secondary {
-  display: inline-block;
-  padding: 0.625rem 1.25rem;
-  border-radius: 8px;
-  font-size: 0.938rem;
-  font-weight: 600;
-  cursor: pointer;
   text-decoration: none;
-  border: 1px solid transparent;
-}
-
-.btn-primary {
-  background: #0f172a;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #1e293b;
-}
-
-.btn-primary:disabled {
-  background: #cbd5e1;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: white;
-  color: #0f172a;
-  border-color: #e2e8f0;
 }
 
 .success-panel {
-  border-color: #a7f3d0;
+  border-color: var(--color-success);
 }
 
 .success-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 1.25rem;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
 }
 
 .success-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #059669;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-success-text);
+  font-variant-numeric: tabular-nums;
 }
 
 .actions {
   display: flex;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }
 </style>
