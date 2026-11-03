@@ -6,6 +6,16 @@ export default {
     orders: '注文',
     finance: '財務',
     demandForecast: '需要予測',
+    restocking: '補充発注',
+    reports: 'レポート',
+    sectionOperations: '業務',
+    sectionInsights: '分析',
+    mainNavigation: 'メインナビゲーション',
+    collapseSidebar: 'サイドバーを折りたたむ',
+    expandSidebar: 'サイドバーを展開',
+    openMenu: 'メニューを開く',
+    closeMenu: 'メニューを閉じる',
+    filtersLabel: 'フィルター',
     companyName: '触媒コンポーネンツ',
     subtitle: '在庫管理システム'
   },
@@ -101,11 +111,70 @@ export default {
     }
   },
 
+  // 補充発注
+  restocking: {
+    title: '補充発注',
+    description: '予測需要に基づく優先順位で、予算内の補充発注を計画します',
+    loadError: '補充データの読み込みに失敗しました: {message}',
+    budget: '予算',
+    budgetHint: 'スライダーで補充予算を設定します。推奨内容は自動的に更新されます。',
+    resetHint: '予算を変更すると、下の表での手動調整はリセットされます。',
+    selectedTotal: '選択合計',
+    remaining: '残予算',
+    itemCount: '選択品目数',
+    leadTime: '発注リードタイム',
+    days: '{count}日',
+    candidates: '補充候補',
+    noCandidates: '補充が必要な品目はありません。',
+    table: {
+      include: '含める',
+      item: '品目',
+      trend: 'トレンド',
+      recommended: '推奨数量',
+      quantity: '数量',
+      unitCost: '単価',
+      lineTotal: '小計',
+      leadTime: 'リードタイム'
+    },
+    trend: {
+      increasing: '増加',
+      stable: '安定',
+      decreasing: '減少'
+    },
+    placeOrder: '発注する',
+    placing: '発注中...',
+    overBudget: '選択合計が予算を超えています。数量を減らすか予算を増やしてください。',
+    nothingSelected: '発注するには、数量が1以上の品目を少なくとも1つ選択してください。',
+    placeError: '発注に失敗しました: {message}',
+    success: {
+      title: '発注が完了しました',
+      orderNumber: '注文番号',
+      total: '合計',
+      expectedDelivery: '予定配達日',
+      viewOrders: '注文を表示',
+      newOrder: '別の発注を計画'
+    }
+  },
+
   // Orders
   orders: {
     title: '注文',
     description: '顧客注文の表示と管理',
     allOrders: 'すべての注文',
+    submittedOrders: {
+      title: '発注済みの注文',
+      empty: '発注済みの補充注文はまだありません。',
+      orderNumber: '注文番号',
+      createdDate: '作成日',
+      items: '品目',
+      totalCost: '合計費用',
+      leadTime: 'リードタイム',
+      expectedDelivery: '予定配達日',
+      status: 'ステータス',
+      days: '{count}日',
+      status_submitted: '発注済み',
+      loadError: '発注済みの注文を読み込めませんでした。'
+    },
     totalOrders: '総注文数',
     totalRevenue: '総収益',
     avgOrderValue: '平均注文額',

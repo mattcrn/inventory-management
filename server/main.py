@@ -1,8 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import threading
+from datetime import date, timedelta
 from typing import List, Optional
-from pydantic import BaseModel
-from mock_data import inventory_items, orders, demand_forecasts, backlog_items, spending_summary, monthly_spending, category_spending, recent_transactions, purchase_orders
+from pydantic import BaseModel, Field
+import mock_data
+from mock_data import inventory_items, orders, demand_forecasts, backlog_items, spending_summary, monthly_spending, category_spending, recent_transactions, purchase_orders, restocking_orders
 
 app = FastAPI(title="Factory Inventory Management System")
 
@@ -89,6 +92,8 @@ class DemandForecast(BaseModel):
     forecasted_demand: int
     trend: str
     period: str
+    unit_cost: float
+    lead_time_days: int
 
 class BacklogItem(BaseModel):
     id: str
@@ -119,6 +124,33 @@ class CreatePurchaseOrderRequest(BaseModel):
     unit_cost: float
     expected_delivery_date: str
     notes: Optional[str] = None
+
+class RestockLine(BaseModel):
+    item_sku: str
+    quantity: int = Field(gt=0)
+
+class CreateRestockOrderRequest(BaseModel):
+    budget: float = Field(gt=0)
+    items: List[RestockLine] = Field(min_length=1)
+
+class RestockOrderLine(BaseModel):
+    item_sku: str
+    item_name: str
+    quantity: int
+    unit_cost: float
+    line_total: float
+    lead_time_days: int
+
+class RestockOrder(BaseModel):
+    id: str
+    order_number: str
+    created_date: str
+    status: str
+    budget: float
+    total_cost: float
+    lead_time_days: int
+    expected_delivery: str
+    items: List[RestockOrderLine]
 
 # API endpoints
 @app.get("/")
@@ -226,6 +258,81 @@ def get_category_spending():
 def get_recent_transactions():
     """Get recent transactions"""
     return recent_transactions
+
+# Serialises number allocation + save: the sync endpoint runs in FastAPI's
+# threadpool, so two concurrent POSTs could otherwise claim the same number.
+restocking_lock = threading.Lock()
+
+def _next_restock_number() -> int:
+    """Next order number, derived from the highest existing one rather than the
+    list length so hand-edited/deleted entries in the JSON can't cause reuse."""
+    numbers = [int(o["order_number"].split("-")[1]) for o in restocking_orders]
+    return max(numbers, default=0) + 1
+
+@app.get("/api/restocking-orders", response_model=List[RestockOrder])
+def get_restocking_orders():
+    """Get submitted restocking orders, newest first"""
+    # Orders are only ever appended, so reversing the list gives newest first.
+    return list(reversed(restocking_orders))
+
+@app.post("/api/restocking-orders", response_model=RestockOrder, status_code=201)
+def create_restocking_order(request: CreateRestockOrderRequest):
+    """Submit a restocking order for demand-forecast items within a budget"""
+    forecasts_by_sku = {f["item_sku"]: f for f in demand_forecasts}
+
+    skus = [line.item_sku for line in request.items]
+    if len(skus) != len(set(skus)):
+        raise HTTPException(status_code=400, detail="Each item may only appear once per order")
+
+    lines = []
+    for line in request.items:
+        forecast = forecasts_by_sku.get(line.item_sku)
+        if not forecast:
+            raise HTTPException(status_code=400, detail=f"Unknown item SKU: {line.item_sku}")
+        # Prices come from server-side forecast data, never from the client,
+        # so a tampered request cannot sneak an order under the budget.
+        lines.append({
+            "item_sku": forecast["item_sku"],
+            "item_name": forecast["item_name"],
+            "quantity": line.quantity,
+            "unit_cost": forecast["unit_cost"],
+            "line_total": round(line.quantity * forecast["unit_cost"], 2),
+            "lead_time_days": forecast["lead_time_days"],
+        })
+
+    total_cost = round(sum(l["line_total"] for l in lines), 2)
+    # Compare in integer cents so float noise (e.g. 3099.6000000001) can never
+    # reject an order whose total exactly equals the budget.
+    if round(total_cost * 100) > round(request.budget * 100):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Order total {total_cost:.2f} exceeds budget {request.budget:.2f}"
+        )
+
+    # The order ships complete, so it is only delivered once its slowest item
+    # arrives: the order's lead time is the max across its lines, not the sum.
+    lead_time_days = max(l["lead_time_days"] for l in lines)
+    today = date.today()
+
+    with restocking_lock:
+        next_number = _next_restock_number()
+        order = {
+            "id": f"rst-{next_number}",
+            "order_number": f"RST-{next_number:04d}",
+            "created_date": today.isoformat(),
+            "status": "Submitted",
+            "budget": request.budget,
+            "total_cost": total_cost,
+            "lead_time_days": lead_time_days,
+            "expected_delivery": (today + timedelta(days=lead_time_days)).isoformat(),
+            "items": lines,
+        }
+
+        # Save first, then commit to memory: if the write fails the client gets
+        # a 500 and the in-memory list still matches what is on disk.
+        mock_data.save_restocking_orders(restocking_orders + [order])
+        restocking_orders.append(order)
+    return order
 
 @app.get("/api/reports/quarterly")
 def get_quarterly_reports():

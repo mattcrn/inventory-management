@@ -8,8 +8,8 @@
     <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
-      <div class="demand-trend-cards">
-        <div class="trend-card increasing-card">
+      <div class="card-grid demand-trend-cards">
+        <div class="card trend-card increasing-card">
           <div class="trend-header">
             <div class="trend-icon">↑</div>
             <div>
@@ -28,7 +28,7 @@
           </div>
         </div>
 
-        <div class="trend-card stable-card">
+        <div class="card trend-card stable-card">
           <div class="trend-header">
             <div class="trend-icon">→</div>
             <div>
@@ -47,7 +47,7 @@
           </div>
         </div>
 
-        <div class="trend-card decreasing-card">
+        <div class="card trend-card decreasing-card">
           <div class="trend-header">
             <div class="trend-icon">↓</div>
             <div>
@@ -77,9 +77,9 @@
               <tr>
                 <th>{{ t('demand.table.sku') }}</th>
                 <th>{{ t('demand.table.itemName') }}</th>
-                <th>{{ t('demand.table.currentDemand') }}</th>
-                <th>{{ t('demand.table.forecastedDemand') }}</th>
-                <th>{{ t('demand.table.change') }}</th>
+                <th class="numeric">{{ t('demand.table.currentDemand') }}</th>
+                <th class="numeric">{{ t('demand.table.forecastedDemand') }}</th>
+                <th class="numeric">{{ t('demand.table.change') }}</th>
                 <th>{{ t('demand.table.trend') }}</th>
                 <th>{{ t('demand.table.period') }}</th>
               </tr>
@@ -88,9 +88,9 @@
               <tr v-for="forecast in forecasts" :key="forecast.id">
                 <td><strong>{{ forecast.item_sku }}</strong></td>
                 <td>{{ forecast.item_name }}</td>
-                <td>{{ forecast.current_demand }}</td>
-                <td><strong>{{ forecast.forecasted_demand }}</strong></td>
-                <td>
+                <td class="numeric">{{ forecast.current_demand }}</td>
+                <td class="numeric"><strong>{{ forecast.forecasted_demand }}</strong></td>
+                <td class="numeric">
                   <span :style="{ color: getChangeColor(forecast) }">
                     {{ getChangePercent(forecast) }}%
                   </span>
@@ -181,12 +181,12 @@ export default {
 
       // If change is within ±2%, consider it stable and show blue
       if (changePercent <= 2) {
-        return '#3b82f6' // Blue for stable
+        return 'var(--chart-1)' // Blue for stable
       }
 
-      if (change > 0) return '#10b981' // Green for increasing
-      if (change < 0) return '#ef4444' // Red for decreasing
-      return '#3b82f6' // Blue for no change
+      if (change > 0) return 'var(--color-success)' // Green for increasing
+      if (change < 0) return 'var(--color-danger)' // Red for decreasing
+      return 'var(--chart-1)' // Blue for no change
     }
 
     const translatePeriod = (period) => {
@@ -224,44 +224,37 @@ export default {
 </script>
 
 <style scoped>
+/* Layout comes from .card-grid; .card supplies surface, border, padding.
+   The grid's bottom margin separates it from the forecasts card below. */
 .demand-trend-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-6);
 }
 
 .trend-card {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 1.5rem;
-  transition: all 0.2s ease;
+  margin-bottom: 0;
+  min-width: 0;
 }
 
-.trend-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
+/* Colored left edge encodes the trend; colors come from status tokens */
 .increasing-card {
-  border-left: 4px solid #10b981;
+  border-left: 4px solid var(--color-success);
 }
 
 .stable-card {
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--color-info);
 }
 
 .decreasing-card {
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid var(--color-danger);
 }
 
 .trend-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #f1f5f9;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .trend-icon {
@@ -270,100 +263,104 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  font-size: 1.75rem;
-  font-weight: 700;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
   flex-shrink: 0;
 }
 
 .increasing-card .trend-icon {
-  background: #d1fae5;
-  color: #059669;
+  background: var(--color-success-soft);
+  color: var(--color-success-text);
 }
 
 .stable-card .trend-icon {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--color-info-soft);
+  color: var(--color-info-text);
 }
 
 .decreasing-card .trend-icon {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--color-danger-soft);
+  color: var(--color-danger-text);
 }
 
 .trend-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #64748b;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .trend-count {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin-top: 0.25rem;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  margin-top: var(--space-1);
 }
 
 .trend-items {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-2);
 }
 
 .trend-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0.75rem;
-  background: #f8fafc;
-  border-radius: 6px;
-  transition: background 0.2s;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
 }
 
-.trend-item:hover {
-  background: #f1f5f9;
-}
-
+/* min-width: 0 lets the flex child shrink so ellipsis works on narrow screens */
 .item-name {
-  font-size: 0.875rem;
-  color: #0f172a;
-  font-weight: 500;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-right: 1rem;
+  margin-right: var(--space-4);
 }
 
 .item-change {
-  font-size: 0.813rem;
-  font-weight: 700;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
 
 .increasing-card .item-change {
-  color: #059669;
+  color: var(--color-success-text);
 }
 
 .stable-card .item-change {
-  color: #3b82f6;
+  color: var(--color-info-text);
 }
 
 .decreasing-card .item-change {
-  color: #dc2626;
+  color: var(--color-danger-text);
 }
 
 .item-change.neutral {
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .more-items {
-  font-size: 0.813rem;
-  color: #64748b;
-  font-style: italic;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
   text-align: center;
-  padding: 0.5rem;
+  padding: var(--space-2);
+}
+
+/* 320px min column would overflow a 390px viewport minus shell padding */
+@media (max-width: 480px) {
+  .demand-trend-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>

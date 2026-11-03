@@ -6,6 +6,16 @@ export default {
     orders: 'Orders',
     finance: 'Finance',
     demandForecast: 'Demand Forecast',
+    restocking: 'Restocking',
+    reports: 'Reports',
+    sectionOperations: 'Operations',
+    sectionInsights: 'Insights',
+    mainNavigation: 'Main navigation',
+    collapseSidebar: 'Collapse sidebar',
+    expandSidebar: 'Expand sidebar',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+    filtersLabel: 'Filters',
     companyName: 'Catalyst Components',
     subtitle: 'Inventory Management System'
   },
@@ -101,11 +111,70 @@ export default {
     }
   },
 
+  // Restocking
+  restocking: {
+    title: 'Restocking',
+    description: 'Plan a restocking order within a budget, prioritised by forecasted demand',
+    loadError: 'Failed to load restocking data: {message}',
+    budget: 'Budget',
+    budgetHint: 'Drag to set the restocking budget. Recommendations update automatically.',
+    resetHint: 'Changing the budget resets any manual adjustments to the table below.',
+    selectedTotal: 'Selected Total',
+    remaining: 'Remaining',
+    itemCount: 'Items Selected',
+    leadTime: 'Order Lead Time',
+    days: '{count} days',
+    candidates: 'Restocking Candidates',
+    noCandidates: 'No items need restocking.',
+    table: {
+      include: 'Include',
+      item: 'Item',
+      trend: 'Trend',
+      recommended: 'Recommended',
+      quantity: 'Quantity',
+      unitCost: 'Unit Cost',
+      lineTotal: 'Line Total',
+      leadTime: 'Lead Time'
+    },
+    trend: {
+      increasing: 'Increasing',
+      stable: 'Stable',
+      decreasing: 'Decreasing'
+    },
+    placeOrder: 'Place Order',
+    placing: 'Placing order...',
+    overBudget: 'Selected total exceeds the budget. Reduce quantities or raise the budget.',
+    nothingSelected: 'Select at least one item with a quantity above zero to place an order.',
+    placeError: 'Failed to place order: {message}',
+    success: {
+      title: 'Order Placed',
+      orderNumber: 'Order Number',
+      total: 'Total',
+      expectedDelivery: 'Expected Delivery',
+      viewOrders: 'View in Orders',
+      newOrder: 'Plan Another Order'
+    }
+  },
+
   // Orders
   orders: {
     title: 'Orders',
     description: 'View and manage customer orders',
     allOrders: 'All Orders',
+    submittedOrders: {
+      title: 'Submitted Orders',
+      empty: 'No restocking orders have been submitted yet.',
+      orderNumber: 'Order #',
+      createdDate: 'Created',
+      items: 'Items',
+      totalCost: 'Total Cost',
+      leadTime: 'Lead Time',
+      expectedDelivery: 'Expected Delivery',
+      status: 'Status',
+      days: '{count} days',
+      status_submitted: 'Submitted',
+      loadError: 'Could not load submitted orders.'
+    },
     totalOrders: 'Total Orders',
     totalRevenue: 'Total Revenue',
     avgOrderValue: 'Avg Order Value',

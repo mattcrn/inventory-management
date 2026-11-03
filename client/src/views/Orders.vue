@@ -27,6 +27,55 @@
         </div>
       </div>
 
+      <!-- Submitted restocking orders: independent of the global filters -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ t('orders.submittedOrders.title') }} ({{ restockingOrders.length }})</h3>
+        </div>
+        <div v-if="restockingError" class="error">{{ restockingError }}</div>
+        <div v-else-if="restockingOrders.length === 0" class="empty-state">{{ t('orders.submittedOrders.empty') }}</div>
+        <div v-else class="table-container">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th class="col-order-number">{{ t('orders.submittedOrders.orderNumber') }}</th>
+                <th class="col-date">{{ t('orders.submittedOrders.createdDate') }}</th>
+                <th class="col-items">{{ t('orders.submittedOrders.items') }}</th>
+                <th class="col-value numeric">{{ t('orders.submittedOrders.totalCost') }}</th>
+                <th class="col-date">{{ t('orders.submittedOrders.leadTime') }}</th>
+                <th class="col-date">{{ t('orders.submittedOrders.expectedDelivery') }}</th>
+                <th class="col-status">{{ t('orders.submittedOrders.status') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in restockingOrders" :key="order.order_number">
+                <td class="col-order-number"><strong>{{ order.order_number }}</strong></td>
+                <td class="col-date">{{ formatDate(order.created_date) }}</td>
+                <td class="col-items">
+                  <details class="items-details">
+                    <summary class="items-summary">
+                      {{ t('orders.itemsCount', { count: order.items.length }) }}
+                    </summary>
+                    <div class="items-dropdown">
+                      <div v-for="item in order.items" :key="item.item_sku" class="item-entry">
+                        <span class="item-name">{{ translateProductName(item.item_name) }}</span>
+                        <span class="item-meta">{{ t('orders.quantity') }}: {{ item.quantity }} @ {{ formatUnitCost(item.unit_cost) }}</span>
+                      </div>
+                    </div>
+                  </details>
+                </td>
+                <td class="col-value numeric"><strong>{{ formatCost(order.total_cost) }}</strong></td>
+                <td class="col-date">{{ t('orders.submittedOrders.days', { count: order.lead_time_days }) }}</td>
+                <td class="col-date">{{ formatDate(order.expected_delivery) }}</td>
+                <td class="col-status">
+                  <span class="badge info">{{ submittedStatusLabel(order.status) }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">{{ t('orders.allOrders') }} ({{ orders.length }})</h3>
@@ -41,7 +90,7 @@
                 <th class="col-status">{{ t('orders.table.status') }}</th>
                 <th class="col-date">{{ t('orders.table.orderDate') }}</th>
                 <th class="col-date">{{ t('orders.table.expectedDelivery') }}</th>
-                <th class="col-value">{{ t('orders.table.totalValue') }}</th>
+                <th class="col-value numeric">{{ t('orders.table.totalValue') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -68,7 +117,7 @@
                 </td>
                 <td class="col-date">{{ formatDate(order.order_date) }}</td>
                 <td class="col-date">{{ formatDate(order.expected_delivery) }}</td>
-                <td class="col-value"><strong>{{ currencySymbol }}{{ order.total_value.toLocaleString() }}</strong></td>
+                <td class="col-value numeric"><strong>{{ currencySymbol }}{{ order.total_value.toLocaleString() }}</strong></td>
               </tr>
             </tbody>
           </table>
@@ -83,6 +132,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { api } from '../api'
 import { useFilters } from '../composables/useFilters'
 import { useI18n } from '../composables/useI18n'
+import { formatCurrencyWithDecimals } from '../utils/currency'
 
 export default {
   name: 'Orders',
@@ -95,6 +145,29 @@ export default {
     const loading = ref(true)
     const error = ref(null)
     const orders = ref([])
+    const restockingOrders = ref([])
+    const restockingError = ref(null)
+
+    // Restocking orders are not filterable, so they load once on mount.
+    // A failure here only affects this card, never the main orders table.
+    const loadRestockingOrders = async () => {
+      try {
+        restockingOrders.value = await api.getRestockingOrders()
+        restockingError.value = null
+      } catch (err) {
+        console.error('Failed to load restocking orders:', err)
+        restockingError.value = t('orders.submittedOrders.loadError')
+      }
+    }
+
+    // Cents shown in USD so totals like $3,099.60 are not rounded
+    const formatCost = (amount) => formatCurrencyWithDecimals(amount, currentCurrency.value, 2)
+    const formatUnitCost = (amount) => formatCurrencyWithDecimals(amount, currentCurrency.value, 2)
+    const submittedStatusLabel = (status) => {
+      const key = `orders.submittedOrders.status_${String(status).toLowerCase()}`
+      const label = t(key)
+      return label === key ? status : label
+    }
 
     // Use shared filters
     const {
@@ -153,13 +226,19 @@ export default {
       })
     }
 
-    onMounted(loadOrders)
+    // Run in parallel; each handles its own errors
+    onMounted(() => Promise.all([loadOrders(), loadRestockingOrders()]))
 
     return {
       t,
       loading,
       error,
       orders,
+      restockingOrders,
+      restockingError,
+      formatCost,
+      formatUnitCost,
+      submittedStatusLabel,
       getOrdersByStatus,
       getOrderStatusClass,
       formatDate,
@@ -172,15 +251,17 @@ export default {
 </script>
 
 <style scoped>
-/* Fixed table layout to prevent column shifting */
+/* Fixed table layout to prevent column shifting; the min-width keeps the
+   columns readable and makes .table-container scroll instead of the page on mobile */
 .orders-table {
   table-layout: fixed;
   width: 100%;
+  min-width: 960px;
 }
 
 /* Column widths */
 .col-order-number {
-  width: 130px;
+  width: 160px;
 }
 
 .col-customer {
@@ -196,11 +277,17 @@ export default {
 }
 
 .col-date {
-  width: 140px;
+  width: 165px;
 }
 
 .col-value {
-  width: 120px;
+  width: 130px;
+}
+
+/* Order numbers and dates must never wrap mid-token (e.g. "ORD-2025-\n0004") */
+.col-order-number,
+.col-date {
+  white-space: nowrap;
 }
 
 /* Items details styling */
@@ -210,8 +297,8 @@ export default {
 
 .items-summary {
   cursor: pointer;
-  color: #3b82f6;
-  font-weight: 500;
+  color: var(--color-accent);
+  font-weight: var(--weight-medium);
   list-style: none;
   user-select: none;
   display: inline-block;
@@ -222,11 +309,11 @@ export default {
 }
 
 .items-summary::before {
-  content: '▶';
+  content: '\25B6';
   display: inline-block;
-  margin-right: 0.375rem;
-  font-size: 0.75rem;
-  transition: transform 0.2s;
+  margin-right: var(--space-2);
+  font-size: var(--text-xs);
+  transition: transform var(--duration) var(--ease);
 }
 
 .items-details[open] .items-summary::before {
@@ -234,21 +321,21 @@ export default {
 }
 
 .items-summary:hover {
-  color: #2563eb;
+  color: var(--color-accent-hover);
   text-decoration: underline;
 }
 
-/* Dropdown container */
+/* Dropdown container: absolutely positioned so rows do not grow when opened */
 .items-dropdown {
   position: absolute;
   top: 100%;
   left: 0;
-  margin-top: 0.5rem;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  padding: 0.75rem;
+  margin-top: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-3);
   z-index: 10;
   min-width: 300px;
   max-width: 400px;
@@ -257,9 +344,10 @@ export default {
 .item-entry {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.5rem;
-  border-bottom: 1px solid #f1f5f9;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-surface-muted);
+  white-space: normal;
 }
 
 .item-entry:last-child {
@@ -267,13 +355,13 @@ export default {
 }
 
 .item-name {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #0f172a;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
 }
 
 .item-meta {
-  font-size: 0.813rem;
-  color: #64748b;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 </style>

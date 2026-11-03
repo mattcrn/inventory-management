@@ -9,8 +9,8 @@
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
       <!-- Revenue & Financial KPIs -->
-      <div class="stats-grid-finance">
-        <div class="stat-card revenue-card">
+      <div class="stats-grid">
+        <div class="stat-card">
           <div class="stat-label">{{ t('finance.totalRevenue') }}</div>
           <div class="stat-value">{{ formatCurrency(revenueMetrics.totalRevenue) }}</div>
           <div class="stat-change positive">
@@ -18,12 +18,12 @@
             {{ t('finance.fromOrders', { count: revenueMetrics.orderCount }) }}
           </div>
         </div>
-        <div class="stat-card cost-card">
+        <div class="stat-card">
           <div class="stat-label">{{ t('finance.totalCosts') }}</div>
           <div class="stat-value">{{ formatCurrency(totalCosts) }}</div>
           <div class="stat-meta">{{ t('finance.costBreakdown') }}</div>
         </div>
-        <div class="stat-card profit-card">
+        <div class="stat-card">
           <div class="stat-label">{{ t('finance.netProfit') }}</div>
           <div class="stat-value">{{ formatCurrency(netProfit) }}</div>
           <div class="stat-meta">{{ profitMargin }}% {{ t('finance.margin') }}</div>
@@ -36,7 +36,7 @@
       </div>
 
       <!-- Monthly Revenue vs Cost Chart -->
-      <div class="card chart-card">
+      <div class="card">
         <div class="card-header">
           <h3 class="card-title">{{ t('finance.revenueVsCosts.title') }}</h3>
           <div class="chart-legend">
@@ -67,7 +67,7 @@
       </div>
 
       <!-- Monthly Cost Flow Chart -->
-      <div class="card chart-card">
+      <div class="card">
         <div class="card-header">
           <h3 class="card-title">{{ t('finance.monthlyCostFlow.title') }}</h3>
           <div class="chart-legend">
@@ -132,7 +132,7 @@
           <div class="card-header">
             <h3 class="card-title">{{ t('finance.transactions.title') }}</h3>
           </div>
-          <div class="transactions-table-container">
+          <div class="table-container transactions-table-container">
             <table class="transactions-table">
               <thead>
                 <tr>
@@ -140,7 +140,7 @@
                   <th>{{ t('finance.transactions.description') }}</th>
                   <th>{{ t('finance.transactions.vendor') }}</th>
                   <th>{{ t('finance.transactions.date') }}</th>
-                  <th class="text-right">{{ t('finance.transactions.amount') }}</th>
+                  <th class="numeric">{{ t('finance.transactions.amount') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -154,7 +154,7 @@
                   <td class="transaction-description">{{ transaction.description }}</td>
                   <td class="transaction-vendor">{{ transaction.vendor }}</td>
                   <td class="transaction-date">{{ formatDateShort(transaction.date) }}</td>
-                  <td class="transaction-amount text-right">{{ currencySymbol }}{{ transaction.amount.toLocaleString() }}</td>
+                  <td class="transaction-amount numeric">{{ currencySymbol }}{{ transaction.amount.toLocaleString() }}</td>
                 </tr>
               </tbody>
             </table>
@@ -492,158 +492,105 @@ export default {
 </script>
 
 <style scoped>
+/* Delta line under the revenue KPI */
 .stat-change {
-  margin-top: 0.75rem;
-  font-size: 0.875rem;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
+.stat-change.positive { color: var(--color-success-text); }
+.stat-change.negative { color: var(--color-danger-text); }
+.change-icon { font-weight: var(--weight-bold); font-size: var(--text-md); }
 
-.stat-change.positive {
-  color: #059669;
-}
-
-.stat-change.negative {
-  color: #dc2626;
-}
-
-.change-icon {
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.chart-card {
-  margin-bottom: 1.75rem;
-}
-
+/* Legends wrap so a long (ja) legend never forces page overflow */
 .chart-legend {
   display: flex;
-  gap: 1.5rem;
-  font-size: 0.875rem;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  min-width: 0;
 }
-
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #64748b;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
 }
-
 .legend-dot {
   width: 12px;
   height: 12px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
+  flex: none;
 }
+.legend-dot.procurement { background: var(--chart-1); }
+.legend-dot.operational { background: var(--chart-5); }
+.legend-dot.labor { background: var(--chart-2); }
+.legend-dot.overhead { background: var(--chart-3); }
+.legend-dot.revenue-color { background: var(--chart-1); }
+.legend-dot.cost-color { background: var(--chart-4); }
 
-.legend-dot.procurement { background: #3b82f6; }
-.legend-dot.operational { background: #8b5cf6; }
-.legend-dot.labor { background: #10b981; }
-.legend-dot.overhead { background: #f59e0b; }
-.legend-dot.revenue-color { background: #0f172a; }
-.legend-dot.cost-color { background: #ef4444; }
-
-.stats-grid-finance {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.revenue-card {
-  border-left: 4px solid #0f172a;
-}
-
-.cost-card {
-  border-left: 4px solid #ef4444;
-}
-
-.profit-card {
-  border-left: 4px solid #3b82f6;
-}
-
-.stat-meta {
-  margin-top: 0.5rem;
-  font-size: 0.813rem;
-  color: #64748b;
-}
-
-.bar-group-revenue {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  height: 100%;
-}
-
-.revenue-bars {
-  width: 100%;
-  max-width: 80px;
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  align-items: flex-end;
-  height: 100%;
-  padding-bottom: 2rem;
-}
-
-.revenue-bar, .cost-bar {
-  width: 50%;
-  max-width: 30px;
-  border-radius: 6px 6px 0 0;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  min-height: 4px;
-}
-
-.revenue-bar {
-  background: #0f172a;
-}
-
-.cost-bar {
-  background: #ef4444;
-}
-
-.revenue-bar:hover, .cost-bar:hover {
-  opacity: 0.8;
-  transform: scaleY(1.05);
-}
-
-.chart-container {
-  padding: 1.5rem 0;
-}
-
+/* Bar charts */
+.chart-container { padding: var(--space-2) 0; min-width: 0; }
 .bar-chart {
   display: flex;
-  gap: 1.5rem;
+  gap: var(--space-4);
   height: 350px;
+  min-width: 0;
 }
-
 .y-axis {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding-right: 1rem;
-  font-size: 0.75rem;
-  color: #94a3b8;
-  border-right: 1px solid #e2e8f0;
+  padding-right: var(--space-3);
+  padding-bottom: var(--space-8); /* align ticks with bar baseline (above month labels) */
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+  border-right: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
+  flex: none;
 }
-
+/* min-width:0 is essential: without it the 12 bar groups keep their content
+   width and push the page wider than the viewport. */
 .chart-area {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
-  gap: 0.5rem;
+  gap: var(--space-1);
 }
-
+.bar-group-revenue,
 .bar-group {
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   height: 100%;
 }
+.revenue-bars {
+  width: 100%;
+  max-width: 80px;
+  display: flex;
+  gap: var(--space-1);
+  justify-content: center;
+  align-items: flex-end;
+  height: 100%;
+  padding-bottom: var(--space-8);
+}
+.revenue-bar, .cost-bar {
+  width: 50%;
+  max-width: 30px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: opacity var(--duration) var(--ease);
+  cursor: pointer;
+  min-height: 4px;
+}
+.revenue-bar { background: var(--chart-1); }
+.cost-bar { background: var(--chart-4); }
+.revenue-bar:hover, .cost-bar:hover { opacity: 0.8; }
 
 .stacked-bar {
   width: 100%;
@@ -652,201 +599,95 @@ export default {
   flex-direction: column-reverse;
   align-items: stretch;
   height: 100%;
-  padding-bottom: 2rem;
+  padding-bottom: var(--space-8);
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--duration) var(--ease);
 }
-
-.stacked-bar:hover {
-  opacity: 0.85;
-}
-
-.bar-segment {
-  width: 100%;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  display: block;
-}
-
-.bar-segment:first-child {
-  border-radius: 0 0 6px 6px;
-}
-
-.bar-segment:last-child {
-  border-radius: 6px 6px 0 0;
-}
-
-.bar-segment.procurement { background: #3b82f6; }
-.bar-segment.operational { background: #8b5cf6; }
-.bar-segment.labor { background: #10b981; }
-.bar-segment.overhead { background: #f59e0b; }
-
-.bar-segment:hover {
-  opacity: 0.8;
-}
+.stacked-bar:hover { opacity: 0.85; }
+.bar-segment { width: 100%; display: block; }
+.bar-segment:first-child { border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+.bar-segment:last-child { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.bar-segment.procurement { background: var(--chart-1); }
+.bar-segment.operational { background: var(--chart-5); }
+.bar-segment.labor { background: var(--chart-2); }
+.bar-segment.overhead { background: var(--chart-3); }
 
 .bar-label {
-  margin-top: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* Two cards side by side; minmax(0,1fr) lets the grid items shrink,
+   and it stacks below 900px. */
 .two-column-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-  gap: 1.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+.two-column-grid > .card { margin-bottom: 0; min-width: 0; }
+@media (max-width: 900px) {
+  .two-column-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
-.category-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.category-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
+.category-list { display: flex; flex-direction: column; gap: var(--space-5); }
+.category-item { display: flex; flex-direction: column; gap: var(--space-2); }
 .category-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-3);
 }
-
-.category-name {
-  font-weight: 600;
-  color: #0f172a;
-}
-
+.category-name { font-weight: var(--weight-semibold); color: var(--color-text); }
 .category-amount {
-  font-weight: 700;
-  color: #2563eb;
-  font-size: 1.125rem;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  font-size: var(--text-md);
+  font-variant-numeric: tabular-nums;
 }
-
 .category-bar-container {
   width: 100%;
-  height: 8px;
-  background: #f1f5f9;
-  border-radius: 4px;
+  height: var(--space-2);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
-
 .category-bar {
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
-  border-radius: 4px;
-  transition: width 0.6s ease;
+  background: var(--chart-1);
+  border-radius: var(--radius-full);
+  transition: width 0.6s var(--ease);
 }
-
 .category-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 0.813rem;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
 }
+.percentage { color: var(--color-text-muted); }
+.change { font-weight: var(--weight-semibold); }
+.change.positive { color: var(--color-success-text); }
+.change.negative { color: var(--color-danger-text); }
 
-.percentage {
-  color: #64748b;
-}
-
-.change {
-  font-weight: 600;
-}
-
-.change.positive {
-  color: #059669;
-}
-
-.change.negative {
-  color: #dc2626;
-}
-
-.transactions-card {
-  display: flex;
-  flex-direction: column;
-}
-
-.transactions-table-container {
-  overflow-y: auto;
-  max-height: 400px;
-}
-
-.transactions-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.transactions-table thead {
-  position: sticky;
-  top: 0;
-  background: #f8fafc;
-  z-index: 1;
-}
-
-.transactions-table th {
-  text-align: left;
-  padding: 0.625rem 0.75rem;
-  font-weight: 600;
-  color: #475569;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.transactions-table th.text-right {
-  text-align: right;
-}
-
-.transactions-table td {
-  padding: 0.75rem 0.75rem;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 0.875rem;
-}
-
-.transactions-table tbody tr {
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.transactions-table tbody tr:hover {
-  background: #f8fafc;
-}
-
-.transactions-table tbody tr.clickable-row:hover {
-  background: #eff6ff;
-}
-
+/* Transactions: scroll inside the card both ways; header stays pinned */
+.transactions-table-container { max-height: 400px; overflow: auto; }
+.transactions-table { min-width: 480px; }
+.transactions-table thead { position: sticky; top: 0; z-index: 1; }
+.transactions-table tbody tr.clickable-row { cursor: pointer; }
+.transactions-table tbody tr.clickable-row:hover { background: var(--color-accent-soft); }
 .transaction-id {
-  color: #64748b;
-  font-weight: 500;
-  font-family: 'Monaco', 'Courier New', monospace;
-  font-size: 0.813rem;
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: var(--text-sm);
 }
-
-.transaction-description {
-  color: #0f172a;
-  font-weight: 500;
-}
-
-.transaction-vendor {
-  color: #64748b;
-}
-
-.transaction-date {
-  color: #64748b;
-  font-size: 0.813rem;
-}
-
-.transaction-amount {
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.text-right {
-  text-align: right;
-}
+.transaction-description { color: var(--color-text); font-weight: var(--weight-medium); }
+.transaction-vendor { color: var(--color-text-muted); }
+.transaction-date { color: var(--color-text-muted); font-size: var(--text-sm); white-space: nowrap; }
+.transaction-amount { font-weight: var(--weight-semibold); color: var(--color-text); white-space: nowrap; }
 </style>

@@ -31,10 +31,9 @@
         <div class="card-header">
           <h3 class="card-title">Backlog Items</h3>
         </div>
-        <div v-if="backlogItems.length === 0" style="padding: 3rem; text-align: center;">
-          <p style="font-size: 1.125rem; color: #10b981; font-weight: 600;">
-            ✓ No backlog items - all orders can be fulfilled!
-          </p>
+        <div v-if="backlogItems.length === 0" class="empty-state">
+          <p class="empty-state-title">No backlog items</p>
+          <p>All orders can be fulfilled.</p>
         </div>
         <div v-else class="table-container">
           <table>
@@ -43,10 +42,10 @@
                 <th>Order ID</th>
                 <th>SKU</th>
                 <th>Item Name</th>
-                <th>Quantity Needed</th>
-                <th>Quantity Available</th>
-                <th>Shortage</th>
-                <th>Days Delayed</th>
+                <th class="numeric">Quantity Needed</th>
+                <th class="numeric">Quantity Available</th>
+                <th class="numeric">Shortage</th>
+                <th class="numeric">Days Delayed</th>
                 <th>Priority</th>
               </tr>
             </thead>
@@ -55,15 +54,15 @@
                 <td><strong>{{ item.order_id }}</strong></td>
                 <td><strong>{{ item.item_sku }}</strong></td>
                 <td>{{ item.item_name }}</td>
-                <td>{{ item.quantity_needed }}</td>
-                <td>{{ item.quantity_available }}</td>
-                <td>
+                <td class="numeric">{{ item.quantity_needed }}</td>
+                <td class="numeric">{{ item.quantity_available }}</td>
+                <td class="numeric">
                   <span class="badge danger">
                     {{ item.quantity_needed - item.quantity_available }} units short
                   </span>
                 </td>
-                <td>
-                  <span :style="{ color: item.days_delayed > 7 ? '#ef4444' : '#f59e0b' }">
+                <td class="numeric">
+                  <span :style="{ color: item.days_delayed > 7 ? 'var(--color-danger-text)' : 'var(--color-warning-text)' }">
                     {{ item.days_delayed }} days
                   </span>
                 </td>
