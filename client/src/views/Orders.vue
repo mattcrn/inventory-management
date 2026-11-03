@@ -27,6 +27,55 @@
         </div>
       </div>
 
+      <!-- Submitted restocking orders: independent of the global filters -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ t('orders.submittedOrders.title') }} ({{ restockingOrders.length }})</h3>
+        </div>
+        <div v-if="restockingError" class="error">{{ restockingError }}</div>
+        <div v-else-if="restockingOrders.length === 0" class="loading">{{ t('orders.submittedOrders.empty') }}</div>
+        <div v-else class="table-container">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th class="col-order-number">{{ t('orders.submittedOrders.orderNumber') }}</th>
+                <th class="col-date">{{ t('orders.submittedOrders.createdDate') }}</th>
+                <th class="col-items">{{ t('orders.submittedOrders.items') }}</th>
+                <th class="col-value">{{ t('orders.submittedOrders.totalCost') }}</th>
+                <th class="col-date">{{ t('orders.submittedOrders.leadTime') }}</th>
+                <th class="col-date">{{ t('orders.submittedOrders.expectedDelivery') }}</th>
+                <th class="col-status">{{ t('orders.submittedOrders.status') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in restockingOrders" :key="order.order_number">
+                <td class="col-order-number"><strong>{{ order.order_number }}</strong></td>
+                <td class="col-date">{{ formatDate(order.created_date) }}</td>
+                <td class="col-items">
+                  <details class="items-details">
+                    <summary class="items-summary">
+                      {{ t('orders.itemsCount', { count: order.items.length }) }}
+                    </summary>
+                    <div class="items-dropdown">
+                      <div v-for="item in order.items" :key="item.item_sku" class="item-entry">
+                        <span class="item-name">{{ translateProductName(item.item_name) }}</span>
+                        <span class="item-meta">{{ t('orders.quantity') }}: {{ item.quantity }} @ {{ formatUnitCost(item.unit_cost) }}</span>
+                      </div>
+                    </div>
+                  </details>
+                </td>
+                <td class="col-value"><strong>{{ formatCost(order.total_cost) }}</strong></td>
+                <td class="col-date">{{ t('orders.submittedOrders.days', { count: order.lead_time_days }) }}</td>
+                <td class="col-date">{{ formatDate(order.expected_delivery) }}</td>
+                <td class="col-status">
+                  <span class="badge info">{{ submittedStatusLabel(order.status) }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">{{ t('orders.allOrders') }} ({{ orders.length }})</h3>
@@ -83,6 +132,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { api } from '../api'
 import { useFilters } from '../composables/useFilters'
 import { useI18n } from '../composables/useI18n'
+import { formatCurrencyWithDecimals } from '../utils/currency'
 
 export default {
   name: 'Orders',
@@ -95,6 +145,29 @@ export default {
     const loading = ref(true)
     const error = ref(null)
     const orders = ref([])
+    const restockingOrders = ref([])
+    const restockingError = ref(null)
+
+    // Restocking orders are not filterable, so they load once on mount.
+    // A failure here only affects this card, never the main orders table.
+    const loadRestockingOrders = async () => {
+      try {
+        restockingOrders.value = await api.getRestockingOrders()
+        restockingError.value = null
+      } catch (err) {
+        console.error('Failed to load restocking orders:', err)
+        restockingError.value = t('orders.submittedOrders.loadError')
+      }
+    }
+
+    // Cents shown in USD so totals like $3,099.60 are not rounded
+    const formatCost = (amount) => formatCurrencyWithDecimals(amount, currentCurrency.value, 2)
+    const formatUnitCost = (amount) => formatCurrencyWithDecimals(amount, currentCurrency.value, 2)
+    const submittedStatusLabel = (status) => {
+      const key = `orders.submittedOrders.status_${String(status).toLowerCase()}`
+      const label = t(key)
+      return label === key ? status : label
+    }
 
     // Use shared filters
     const {
@@ -153,13 +226,19 @@ export default {
       })
     }
 
-    onMounted(loadOrders)
+    // Run in parallel; each handles its own errors
+    onMounted(() => Promise.all([loadOrders(), loadRestockingOrders()]))
 
     return {
       t,
       loading,
       error,
       orders,
+      restockingOrders,
+      restockingError,
+      formatCost,
+      formatUnitCost,
+      submittedStatusLabel,
       getOrdersByStatus,
       getOrderStatusClass,
       formatDate,

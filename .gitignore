@@ -12,6 +12,10 @@ ENV/
 dist/
 build/
 
+# Runtime data written by the API (restocking orders)
+server/data/restocking_orders.json
+server/data/restocking_orders.json.tmp
+
 # Node.js
 node_modules/
 client/package-lock.json
