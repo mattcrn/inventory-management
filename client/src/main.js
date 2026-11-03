@@ -20,7 +20,7 @@ const router = createRouter({
     { path: '/demand', component: Demand, meta: { sectionKey: 'nav.sectionInsights', titleKey: 'nav.demandForecast', showFilters: true } },
     { path: '/restocking', component: Restocking, meta: { sectionKey: 'nav.sectionOperations', titleKey: 'nav.restocking', showFilters: false } },
     { path: '/spending', component: Spending, meta: { sectionKey: 'nav.sectionInsights', titleKey: 'nav.finance', showFilters: true } },
-    { path: '/reports', component: Reports, meta: { sectionKey: 'nav.sectionInsights', titleKey: 'nav.reports', showFilters: false } }
+    { path: '/reports', component: Reports, meta: { sectionKey: 'nav.sectionInsights', titleKey: 'nav.reports', showFilters: true } }
   ]
 })
 
